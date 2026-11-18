@@ -257,5 +257,5 @@ El frontend servido por Cowboy materializa este sistema con CSS y JavaScript nat
 ### Verificación del frontend
 
 - `node --check` sobre el bloque `<script>`: exit `0`.
-- SHA-256 del HTML servido por `/`: `677e9ad4a9cfb1b322a2fc7efb3e83b34b7325ff7f5289c38db7d17b3f5001e0`, idéntico al archivo local.
+- SHA-256 del HTML servido por `/`: `f475d02f08e173f2d2f068821d31c53f91d309976d133278bb000e8630ce4060`, idéntico al archivo local.
 - Render headless con Chrome sobre el escenario de 64 equipos: 2 cuadros, 17 rondas, 125 tarjetas de partida y 123 conectores reales; KPIs `2/2`, `64/64`, `300` y `1`; 0 errores JavaScript.

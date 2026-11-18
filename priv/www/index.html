@@ -580,7 +580,8 @@
       const card = document.createElement('article'); card.className = 'tournament';
       const top = document.createElement('div'); top.className = 'tournament-top';
       const name = document.createElement('h3'); name.textContent = t.name;
-      top.append(name, pillFor(t.state));
+      top.append(name);
+      top.insertAdjacentHTML('beforeend', pillFor(t.state));
       const meta = document.createElement('div'); meta.className = 'meta';
       [`#${t.id}`, formatNames[t.format] || t.format, (t.series_format || 'bo1').toUpperCase(), `${t.teams_count}/${t.max_teams} equipos`]
         .forEach(value => { const span = document.createElement('span'); span.textContent = value; meta.append(span); });
