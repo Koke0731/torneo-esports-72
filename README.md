@@ -154,6 +154,8 @@ En la instancia de proyecto desplegada se sirve en <http://35.93.5.143:8080/> (e
 Incluye pestañas para torneos, brackets, equipos y partidas, disputas y marcadores en vivo.
 El dashboard usa la API del mismo servidor (`/api/...`) y el WebSocket `/ws`.
 
+La pestaña **Broadcast en vivo** (o `?tab=broadcast`) valida el torneo vigente contra `/api/torneos` antes de abrir el socket, y muestra “WebSocket conectado” solo después de recibir `tournament_state`. Si la pestaña estaba abierta antes de un reinicio y el torneo seleccionado ya no existe, recarga la lista y se reconecta al torneo actual: esa conexión se contabiliza como un espectador más en `viewers_total` (por ejemplo, de 300 a 301).
+
 La vista **Brackets** (también accesible con `?tab=brackets`) presenta cada cuadro como un árbol real: columnas por ronda alineadas en una cuadrícula, conectores ortogonales SVG entre ganadores y su siguiente partida, cabecera de ronda con progreso y navegador de rondas con “Ir a la final”. Cada tarjeta muestra dos equipos, marcador, formato y estado (`programada`, `en juego`, `finalizada`, `en disputa`, `descalificado`); al hacer clic se abre la partida en la pestaña Partidas. El panel es desplazable horizontalmente y los conectores se recalculan al cambiar de pestaña o al redimensionar la ventana.
 
 Si Erlang corre en una VM de Corellium, mantén abierto un túnel SSH local hacia el puerto 8080 y abre el dashboard desde el equipo donde corre el túnel.

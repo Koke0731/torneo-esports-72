@@ -873,23 +873,51 @@
         if (value.type === 'match_finished') { loadBrackets(); loadMetrics(); }
       }
     }
-    function connectWebSocket() {
-      if (!activeId()) { alert('Selecciona un torneo primero.'); return; }
-      if (socket) socket.close();
+    async function connectWebSocket() {
+      await loadTournaments();
+      if (!activeId()) { alert('No hay torneos disponibles.'); return; }
+      if (socket && socket.readyState !== WebSocket.CLOSED && socket.readyState !== WebSocket.CLOSING) socket.close();
       const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      socket = new WebSocket(`${protocol}//${location.host}/ws?tournament_id=${activeId()}`);
+      const current = new WebSocket(`${protocol}//${location.host}/ws?tournament_id=${activeId()}`);
+      socket = current;
       const status = $('#ws-status');
-      status.innerHTML = '<span class="dot"></span>Conectando…'; status.classList.remove('off');
-      socket.onopen = () => { status.innerHTML = '<span class="dot"></span>WebSocket conectado'; socket.send(JSON.stringify({ type: 'subscribe_tournament' })); };
-      socket.onmessage = event => { try { logMessage(JSON.parse(event.data)); } catch { logMessage(event.data); } };
-      socket.onclose = () => { status.innerHTML = '<span class="dot"></span>Desconectado'; status.classList.add('off'); };
-      socket.onerror = () => { status.innerHTML = '<span class="dot"></span>Error de WebSocket'; status.classList.add('off'); };
+      status.innerHTML = '<span class="dot"></span>Sincronizando…'; status.classList.remove('off');
+      let acknowledged = false;
+      const timer = setTimeout(() => {
+        if (acknowledged || socket !== current) return;
+        status.innerHTML = '<span class="dot"></span>Sin respuesta del torneo'; status.classList.add('off');
+        current.close();
+      }, 4000);
+      current.onopen = () => {
+        if (socket === current) current.send(JSON.stringify({ type: 'subscribe_tournament' }));
+      };
+      current.onmessage = event => {
+        if (socket !== current) return;
+        let value;
+        try { value = JSON.parse(event.data); } catch { value = event.data; }
+        if (value && value.type === 'tournament_state' && !acknowledged) {
+          acknowledged = true;
+          clearTimeout(timer);
+          status.innerHTML = '<span class="dot"></span>WebSocket conectado';
+          status.classList.remove('off');
+        }
+        logMessage(value);
+      };
+      current.onclose = () => {
+        clearTimeout(timer);
+        if (socket !== current) return;
+        status.innerHTML = '<span class="dot"></span>Desconectado'; status.classList.add('off');
+      };
+      current.onerror = () => {
+        if (socket !== current) return;
+        status.innerHTML = '<span class="dot"></span>Error de WebSocket'; status.classList.add('off');
+      };
     }
 
     $$('[data-tab]').forEach(button => button.addEventListener('click', () => {
       $$('[data-tab]').forEach(b => b.classList.toggle('active', b === button));
       $$('.tab-pane').forEach(p => p.classList.toggle('active', p.id === `tab-${button.dataset.tab}`));
-      if (button.dataset.tab === 'broadcast' && activeId() && !socket) connectWebSocket();
+      if (button.dataset.tab === 'broadcast' && activeId() && (!socket || socket.readyState !== WebSocket.OPEN || !socket.url.includes(`tournament_id=${activeId()}`))) connectWebSocket();
       if (button.dataset.tab === 'brackets') {
         requestAnimationFrame(() => $$('.bracket-card').forEach(c => {
           if (c._bracketGroups) drawConnectors(c, c._bracketGroups, c._bracketRounds);
@@ -1014,10 +1042,12 @@
     $('#refresh-ledger').addEventListener('click', loadLedger);
     $('#ws-connect').addEventListener('click', connectWebSocket);
 
-    const initialTab = new URLSearchParams(location.search).get('tab');
-    if (initialTab && document.querySelector(`[data-tab="${initialTab}"]`)) document.querySelector(`[data-tab="${initialTab}"]`).click();
+    (async () => {
+      await loadTournaments();
+      const initialTab = new URLSearchParams(location.search).get('tab');
+      if (initialTab && document.querySelector(`[data-tab="${initialTab}"]`)) document.querySelector(`[data-tab="${initialTab}"]`).click();
+    })();
     checkHealth();
-    loadTournaments();
   </script>
 </body>
 </html>

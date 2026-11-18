@@ -236,7 +236,7 @@ El frontend servido por Cowboy materializa este sistema con CSS y JavaScript nat
 
 - Cabecera sticky con la marca `72`, el estado de la API y la etiqueta del entorno.
 - Hero y fila de cuatro KPIs (partidas, equipos, espectadores WebSocket y disputas) alimentados por `/metrics`.
-- Barra de pestañas con Dashboard, Brackets, Partidas, Bitácora y Broadcast; la pestaña inicial se puede fijar con `?tab=...`.
+- Barra de pestañas con Dashboard, Brackets, Partidas, Bitácora y Broadcast; la pestaña inicial se puede fijar con `?tab=...`. La pestaña Broadcast valida el torneo vigente contra `/api/torneos` antes de abrir `/ws`, de modo que una pestaña abierta antes de un reinicio se reconecta al torneo actual en vez de quedar suscrita a un ID inexistente.
 - Paneles de formularios y operación en dos columnas sobre escritorio, una sola columna por debajo de `960px` y ajustes de densidad por debajo de `620px`.
 
 ### Bracket de árbol
@@ -257,5 +257,6 @@ El frontend servido por Cowboy materializa este sistema con CSS y JavaScript nat
 ### Verificación del frontend
 
 - `node --check` sobre el bloque `<script>`: exit `0`.
-- SHA-256 del HTML servido por `/`: `f475d02f08e173f2d2f068821d31c53f91d309976d133278bb000e8630ce4060`, idéntico al archivo local.
+- SHA-256 del HTML servido por `/`: `a41df99620e454357079c14e94238a2f98d7f7ad96dc7b761fe5287a0da4b430`, idéntico al archivo local.
 - Render headless con Chrome sobre el escenario de 64 equipos: 2 cuadros, 17 rondas, 125 tarjetas de partida y 123 conectores reales; KPIs `2/2`, `64/64`, `300` y `1`; 0 errores JavaScript.
+- Verificación CDP en tiempo real de `?tab=broadcast`: abre `/ws?tournament_id=1`, recibe `tournament_state` y `/metrics` pasa de `300` a `301`. Al forzar un ID obsoleto (`selectedTournament='999'`) y volver a la pestaña, el frontend recarga la lista, se reconecta a `#1` y mantiene `301`.
