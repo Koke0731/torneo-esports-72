@@ -150,8 +150,11 @@ sudo journalctl -u p72-esports -f
 ## Frontend
 
 Con la aplicación iniciada, el dashboard está disponible en `http://localhost:8080/`.
+En la instancia de proyecto desplegada se sirve en <http://35.93.5.143:8080/> (el puerto 8080 debe estar abierto; la IP pública puede cambiar si la VM se reinicia porque no tiene Elastic IP).
 Incluye pestañas para torneos, brackets, equipos y partidas, disputas y marcadores en vivo.
 El dashboard usa la API del mismo servidor (`/api/...`) y el WebSocket `/ws`.
+
+La vista **Brackets** (también accesible con `?tab=brackets`) presenta cada cuadro como un árbol real: columnas por ronda alineadas en una cuadrícula, conectores ortogonales SVG entre ganadores y su siguiente partida, cabecera de ronda con progreso y navegador de rondas con “Ir a la final”. Cada tarjeta muestra dos equipos, marcador, formato y estado (`programada`, `en juego`, `finalizada`, `en disputa`, `descalificado`); al hacer clic se abre la partida en la pestaña Partidas. El panel es desplazable horizontalmente y los conectores se recalculan al cambiar de pestaña o al redimensionar la ventana.
 
 Si Erlang corre en una VM de Corellium, mantén abierto un túnel SSH local hacia el puerto 8080 y abre el dashboard desde el equipo donde corre el túnel.
 
@@ -348,7 +351,7 @@ Además de esa prueba unitaria, `scripts/scenario_demo.py` y `scripts/ws_load.py
 
 **Cifras verificadas/documentadas.** La eliminación simple de N participantes requiere N−1 partidas; para 64 equipos son 63. El cuadro doble generado contiene 63 partidas de ganadores, 62 de perdedores y una gran final: 126 partidas; el reinicio añade una y da 127. FACEIT documenta el reinicio de la gran final cuando el equipo del cuadro de perdedores vence al equipo invicto: [guía de formatos de eliminación simple y doble](https://support.faceit.com/hc/es/articles/17048704436508-Torneos-en-formato-de-eliminaci%C3%B3n-simple-y-doble) (consultada el 6 de noviembre de 2026). Los límites de 1–2 segundos y 300 espectadores del enunciado se usan como objetivo de la prueba local, no se citan como garantía medida en producción.
 
-**Interfaz.** Las capturas exportadas de Stitch están en [`stitch_esports_tournament_hub/`](stitch_esports_tournament_hub/): dashboard, brackets, detalle de partida y bitácora. La captura del frontend real corriendo está en [`docs/dashboard_en_vivo.png`](docs/dashboard_en_vivo.png) (dashboard desplegado sobre el release de producción).
+**Interfaz.** Las capturas exportadas de Stitch están en [`stitch_esports_tournament_hub/`](stitch_esports_tournament_hub/): dashboard, brackets, detalle de partida y bitácora. El frontend integrado en Cowboy toma esa dirección estética y la adapta a datos reales: superficies por capas, KPIs, pestañas, estados con color y un bracket de árbol con conectores. Las capturas del frontend real desplegado sobre el release de producción son [`docs/dashboard_en_vivo.png`](docs/dashboard_en_vivo.png) y [`docs/brackets_en_vivo.png`](docs/brackets_en_vivo.png). La verificación headless del escenario de 64 equipos midió 2 cuadros, 17 columnas de ronda, 125 tarjetas de partida y 123 conectores SVG, con KPIs `2/2`, `64/64`, `300` espectadores WebSocket y `1` disputa, sin errores JavaScript.
 
 ## Estructura de Directorios
 
@@ -360,7 +363,8 @@ Además de esa prueba unitaria, `scripts/scenario_demo.py` y `scripts/ws_load.py
 │   ├── PROMPT_STITCH.md    # Prompt para Google Stitch
 │   └── DESIGN.md           # Design system exportado desde Stitch
 ├── docs/
-│   └── dashboard_en_vivo.png  # Captura del frontend real desplegado
+│   ├── dashboard_en_vivo.png  # Captura del dashboard desplegado
+│   └── brackets_en_vivo.png   # Captura del bracket de árbol con conectores
 ├── problema/
 │   └── readme.md       # Descripción del problema
 ├── src/

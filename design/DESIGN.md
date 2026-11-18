@@ -219,3 +219,43 @@ El radio de curvatura de nivel 2 define una apariencia técnica y profesional (`
 
 ### Monitores de Telemetría en Tiempo Real
 - Bloques de métricas compactas que combinan etiquetas superiores (`label-sm` en mayúsculas sostenidas y espaciado de tracking amplio) con valores numéricos grandes (`headline-md`) acompañados de gráficos de línea continua (*sparklines*) con trazo cian o violeta sin relleno inferior.
+
+## Implementación en `priv/www/index.html`
+
+El frontend servido por Cowboy materializa este sistema con CSS y JavaScript nativos, sin dependencias externas ni fuentes remotas. La tipografía usa la pila del sistema (`Inter`, `Segoe UI`, `ui-sans-serif`) para mantener el render disponible sin conexión a Google Fonts.
+
+### Capas y superficies
+
+- `Canvas`: `#0b0e14` con gradientes radiales tenues en índigo y cian.
+- `Lowest` / `Low`: `#0e121a` / `#171b25` para paneles, listas y contenedores.
+- `Surface` / `High` / `Highest`: `#1c212c` / `#262c3a` / `#32394a` para tarjetas de partida, botones y estados hover.
+- `Outline`: `#363d50` y su variante suave `#272d3c`; el foco de teclado usa `2px` de `--primary` (`#c0c1ff`).
+- Estados: `--tertiary` (`#4edea3`) para victoria y enlace estable, `--secondary` (`#7df4ff`) para telemetría y partida en juego, `--warning` (`#ffd8a8`) para espera y `--error` (`#ffb4ab`) para disputa o descalificación.
+
+### Estructura de pantalla
+
+- Cabecera sticky con la marca `72`, el estado de la API y la etiqueta del entorno.
+- Hero y fila de cuatro KPIs (partidas, equipos, espectadores WebSocket y disputas) alimentados por `/metrics`.
+- Barra de pestañas con Dashboard, Brackets, Partidas, Bitácora y Broadcast; la pestaña inicial se puede fijar con `?tab=...`.
+- Paneles de formularios y operación en dos columnas sobre escritorio, una sola columna por debajo de `960px` y ajustes de densidad por debajo de `620px`.
+
+### Bracket de árbol
+
+- Cada ronda es una columna de ancho fijo dentro de `.bracket-cols`; el scroll horizontal conserva la forma de cuadro con 64 equipos sin comprimir las tarjetas.
+- Un `<svg class="bracket-links">` posicionado sobre el canvas dibuja conectores ortogonales (`M … H … V … H …`) desde el borde derecho de cada partida hasta el centro de su sucesora. El trazo es esmeralda cuando la partida siguiente ya tiene resultado y gris (`#39415f`) cuando está pendiente.
+- `.round-head` queda fijo durante el scroll vertical y muestra la fase (`Octavos de final`, `Cuartos de final`, `Semifinal`, `Gran final`), el número de partidas y una barra de avance.
+- El navegador de rondas usa chips con fase y `R<n>`; “Ir a la final” desplaza horizontalmente hasta la última columna. Los conectores se recalculan en `requestAnimationFrame`, al entrar a la pestaña Brackets y en eventos `resize`.
+- `.match-card` contiene avatar con iniciales, nombre de equipo, marcador, formato y pill de estado. Las variantes `.winner`, `.live` y `.lower` ajustan borde, fondo y glyph sin romper la jerarquía.
+
+### Estados e interacción
+
+- Colores de pill: `scheduled` gris, `in_play` cian animado, `finished`/`completed` verde, `disputed`/`dq`/`cancelled` rojo.
+- Clic en una partida ejecuta `openMatch()`: selecciona la partida, abre la pestaña Partidas y desplaza el viewport al detalle.
+- El navegador de rondas expone `aria-label`, los controles usan `:focus-visible` y todo dato de la API se escapa antes de insertarse en el DOM.
+- El bracket se genera desde `/api/torneos/:id/bracket`, `/equipos`, `/disputas` y `/metrics`; no hay partidas de ejemplo embebidas en el marcado.
+
+### Verificación del frontend
+
+- `node --check` sobre el bloque `<script>`: exit `0`.
+- SHA-256 del HTML servido por `/`: `677e9ad4a9cfb1b322a2fc7efb3e83b34b7325ff7f5289c38db7d17b3f5001e0`, idéntico al archivo local.
+- Render headless con Chrome sobre el escenario de 64 equipos: 2 cuadros, 17 rondas, 125 tarjetas de partida y 123 conectores reales; KPIs `2/2`, `64/64`, `300` y `1`; 0 errores JavaScript.
