@@ -257,7 +257,9 @@ El frontend servido por Cowboy materializa este sistema con CSS y JavaScript nat
 ### Verificación del frontend
 
 - `node --check` sobre el bloque `<script>`: exit `0`.
-- SHA-256 del HTML servido por `/`: `7e0b25912c862d588d1fc624b433f091cfd5c1b3bca862eae473ab883aee1756`, idéntico al archivo local.
+- SHA-256 del HTML servido por `/`: `92f9f5453f8a5f6c175b1d8ab4554d039f41090ec2d270b81d6a7c3425e5b53f`, idéntico al archivo local.
 - Render headless con Chrome sobre el escenario de 64 equipos: 2 cuadros, 17 rondas, 125 tarjetas de partida y 123 conectores reales; KPIs `2/2`, `64/64`, `300` y `1`; 0 errores JavaScript.
 - Verificación CDP en tiempo real de `?tab=broadcast`: abre `/ws?tournament_id=1`, recibe `tournament_state` y `/metrics` pasa de `300` a `301`. Al forzar un ID obsoleto (`selectedTournament='999'`) y volver a la pestaña, el frontend recarga la lista, se reconecta a `#1` y mantiene `301`.
 - Verificación CDP del formulario de disputa: envío real en el torneo `#3`, partida `#3`; mensaje “Disputa registrada.”, disputas `0 → 1`, campo de descripción limpio tras `reset()` y 0 excepciones JavaScript. Se corrigió el mismo patrón en el formulario de equipos capturando `event.currentTarget` antes del primer `await`.
+- Auto-conexión: al cargar la página se suscribe al torneo vigente sin pulsar nada; si el socket cae se reintenta cada 3 s; `/metrics` se consulta cada 4 s y la bitácora cada 10 s mientras la pestaña esté visible. Los eventos `match_finished`, `match_disputed` y `match_status` recargan brackets, disputas y métricas al instante.
+- Verificación CDP del modo automático: al abrir `/` sin interacción, chip “WebSocket conectado” y KPI de espectadores en `301` (300 simulados + la pestaña); tras 5 s sin tocar nada sigue en `301`; al cerrar el socket a mano se reconecta solo y vuelve a `301`; 0 excepciones JavaScript.

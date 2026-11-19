@@ -466,7 +466,7 @@
     const formatNames = { single_elim: 'Eliminación simple', double_elim: 'Doble eliminación', swiss: 'Suizo', groups: 'Grupos' };
     const stateNames = { registration_open: 'Inscripciones abiertas', in_progress: 'En curso', completed: 'Finalizado', cancelled: 'Cancelado', scheduled: 'Programada', in_play: 'En juego', finished: 'Finalizada', disputed: 'En disputa', dq: 'Descalificado' };
     const stateClasses = { scheduled: 'scheduled', in_play: 'in_play', finished: 'finished', completed: 'finished', disputed: 'disputed', dq: 'disputed', registration_open: 'scheduled', in_progress: 'in_play', cancelled: 'disputed' };
-    let tournaments = [], selectedTournament = '', brackets = [], matches = [], teams = [], selectedMatch = null, socket = null;
+    let tournaments = [], selectedTournament = '', brackets = [], matches = [], teams = [], selectedMatch = null, socket = null, wsRetryTimer = null;
 
     function esc(value) {
       return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
@@ -868,15 +868,25 @@
     function logMessage(value) {
       const log = $('#ws-log');
       log.textContent = `${new Date().toLocaleTimeString()}  ${JSON.stringify(value)}\n${log.textContent === 'Sin mensajes todavía.' ? '' : log.textContent}`.slice(0, 5000);
-      if (value.type === 'score_update' || value.type === 'match_finished') {
-        $('#live-scores').prepend(item(value.type === 'score_update' ? 'Actualización de marcador' : `Partida ${value.match_id} finalizada`, JSON.stringify(value.data || value.result || value)));
-        if (value.type === 'match_finished') { loadBrackets(); loadMetrics(); }
+      const liveTitles = {
+        score_update: 'Actualización de marcador',
+        match_finished: `Partida ${value?.match_id} finalizada`,
+        match_disputed: `Partida ${value?.match_id} en disputa`,
+        match_status: `Partida ${value?.match_id} cambió de estado`
+      };
+      if (liveTitles[value?.type]) {
+        $('#live-scores').prepend(item(liveTitles[value.type], JSON.stringify(value.data || value.result || value)));
+        if (value.type !== 'score_update') { loadBrackets(); loadLedger(); loadMetrics(); }
       }
     }
-    async function connectWebSocket() {
-      await loadTournaments();
+    async function connectWebSocket({ refresh = true } = {}) {
+      if (wsRetryTimer) { clearTimeout(wsRetryTimer); wsRetryTimer = null; }
+      if (refresh) await loadTournaments();
       if (!activeId()) { alert('No hay torneos disponibles.'); return; }
-      if (socket && socket.readyState !== WebSocket.CLOSED && socket.readyState !== WebSocket.CLOSING) socket.close();
+      if (socket && socket.readyState !== WebSocket.CLOSED && socket.readyState !== WebSocket.CLOSING) {
+        socket._p72ManualClose = true;
+        socket.close();
+      }
       const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
       const current = new WebSocket(`${protocol}//${location.host}/ws?tournament_id=${activeId()}`);
       socket = current;
@@ -906,7 +916,11 @@
       current.onclose = () => {
         clearTimeout(timer);
         if (socket !== current) return;
+        socket = null;
         status.innerHTML = '<span class="dot"></span>Desconectado'; status.classList.add('off');
+        if (!current._p72ManualClose) {
+          wsRetryTimer = setTimeout(() => { wsRetryTimer = null; connectWebSocket(); }, 3000);
+        }
       };
       current.onerror = () => {
         if (socket !== current) return;
@@ -917,7 +931,7 @@
     $$('[data-tab]').forEach(button => button.addEventListener('click', () => {
       $$('[data-tab]').forEach(b => b.classList.toggle('active', b === button));
       $$('.tab-pane').forEach(p => p.classList.toggle('active', p.id === `tab-${button.dataset.tab}`));
-      if (button.dataset.tab === 'broadcast' && activeId() && (!socket || socket.readyState !== WebSocket.OPEN || !socket.url.includes(`tournament_id=${activeId()}`))) connectWebSocket();
+      if (button.dataset.tab === 'broadcast' && activeId() && (!socket || socket.readyState === WebSocket.CLOSED || !socket.url.includes(`tournament_id=${activeId()}`))) connectWebSocket();
       if (button.dataset.tab === 'brackets') {
         requestAnimationFrame(() => $$('.bracket-card').forEach(c => {
           if (c._bracketGroups) drawConnectors(c, c._bracketGroups, c._bracketRounds);
@@ -1046,10 +1060,13 @@
 
     (async () => {
       await loadTournaments();
+      if (activeId()) connectWebSocket({ refresh: false });
       const initialTab = new URLSearchParams(location.search).get('tab');
       if (initialTab && document.querySelector(`[data-tab="${initialTab}"]`)) document.querySelector(`[data-tab="${initialTab}"]`).click();
     })();
     checkHealth();
+    setInterval(loadMetrics, 4000);
+    setInterval(() => { if ($('#tab-ledger').classList.contains('active')) loadLedger(); }, 10000);
   </script>
 </body>
 </html>
