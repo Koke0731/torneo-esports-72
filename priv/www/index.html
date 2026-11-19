@@ -989,10 +989,10 @@
       finally { button.disabled = false; }
     });
     $('#team-form').addEventListener('submit', async event => {
-      event.preventDefault(); if (!activeId()) return;
+      event.preventDefault(); const form = event.currentTarget; if (!activeId()) return;
       try {
         await api(tournamentPath('/equipos'), { method: 'POST', body: JSON.stringify({ name: $('#team-name').value.trim(), players: $('#team-players').value.split(',').map(s => s.trim()).filter(Boolean), seed: Number($('#team-seed').value || 0) }) });
-        event.currentTarget.reset(); $('#team-seed').value = 0; setMessage('#team-message', 'Equipo registrado.'); await loadTeams(); await loadTournaments();
+        form.reset(); $('#team-seed').value = 0; setMessage('#team-message', 'Equipo registrado.'); await loadTeams(); await loadTournaments();
       } catch (error) { setMessage('#team-message', error.message, 'error'); }
     });
     $('#match-select').addEventListener('change', event => { selectedMatch = matches.find(m => String(m.id) === event.target.value) || null; renderMatch(); fillTeamSelects(); });
@@ -1031,10 +1031,12 @@
       } catch (error) { setMessage('#score-message', error.message, 'error'); }
     });
     $('#dispute-form').addEventListener('submit', async event => {
-      event.preventDefault(); if (!selectedMatch) return;
+      event.preventDefault(); const form = event.currentTarget; if (!selectedMatch) return;
+      const reporter = Number($('#dispute-team').value), claimedWinner = Number($('#claimed-winner').value);
+      if (!reporter || !claimedWinner) { setMessage('#dispute-message', 'Selecciona el equipo que reporta y el ganador reclamado.', 'error'); return; }
       try {
-        await api(tournamentPath(`/partidas/${selectedMatch.id}/disputa`), { method: 'POST', body: JSON.stringify({ team_id: Number($('#dispute-team').value), claimed_winner: Number($('#claimed-winner').value), scores: [], reason: $('#dispute-note').value.trim() }) });
-        setMessage('#dispute-message', 'Disputa registrada.'); event.currentTarget.reset(); await loadLedger(); await loadMetrics();
+        await api(tournamentPath(`/partidas/${selectedMatch.id}/disputa`), { method: 'POST', body: JSON.stringify({ team_id: reporter, claimed_winner: claimedWinner, scores: [], reason: $('#dispute-note').value.trim() }) });
+        setMessage('#dispute-message', 'Disputa registrada.'); form.reset(); await loadLedger(); await loadMetrics();
       } catch (error) { setMessage('#dispute-message', error.message, 'error'); }
     });
     $('#refresh').addEventListener('click', loadTournaments);

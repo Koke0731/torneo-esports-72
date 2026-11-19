@@ -257,6 +257,7 @@ El frontend servido por Cowboy materializa este sistema con CSS y JavaScript nat
 ### Verificación del frontend
 
 - `node --check` sobre el bloque `<script>`: exit `0`.
-- SHA-256 del HTML servido por `/`: `a41df99620e454357079c14e94238a2f98d7f7ad96dc7b761fe5287a0da4b430`, idéntico al archivo local.
+- SHA-256 del HTML servido por `/`: `7e0b25912c862d588d1fc624b433f091cfd5c1b3bca862eae473ab883aee1756`, idéntico al archivo local.
 - Render headless con Chrome sobre el escenario de 64 equipos: 2 cuadros, 17 rondas, 125 tarjetas de partida y 123 conectores reales; KPIs `2/2`, `64/64`, `300` y `1`; 0 errores JavaScript.
 - Verificación CDP en tiempo real de `?tab=broadcast`: abre `/ws?tournament_id=1`, recibe `tournament_state` y `/metrics` pasa de `300` a `301`. Al forzar un ID obsoleto (`selectedTournament='999'`) y volver a la pestaña, el frontend recarga la lista, se reconecta a `#1` y mantiene `301`.
+- Verificación CDP del formulario de disputa: envío real en el torneo `#3`, partida `#3`; mensaje “Disputa registrada.”, disputas `0 → 1`, campo de descripción limpio tras `reset()` y 0 excepciones JavaScript. Se corrigió el mismo patrón en el formulario de equipos capturando `event.currentTarget` antes del primer `await`.
